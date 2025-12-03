@@ -3,6 +3,8 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"os"
+	"path/filepath"
 	"time"
 
 	_ "modernc.org/sqlite"
@@ -38,6 +40,36 @@ type DB struct {
 
 // Open creates a new database connection and runs migrations.
 func Open(path string) (*DB, error) {
+	// Ensure the directory exists before trying to open the database
+	dbDir := filepath.Dir(path)
+	if dbDir != "." && dbDir != "" {
+		if err := os.MkdirAll(dbDir, 0755); err != nil {
+			return nil, fmt.Errorf("create database directory %s: %w", dbDir, err)
+		}
+	}
+
+	// Check if the directory is writable
+	if dbDir != "." && dbDir != "" {
+		if info, err := os.Stat(dbDir); err != nil {
+			return nil, fmt.Errorf("database directory %s does not exist and could not be created: %w", dbDir, err)
+		} else if !info.IsDir() {
+			return nil, fmt.Errorf("database path %s exists but is not a directory", dbDir)
+		}
+	}
+
+	// Check if the database file exists and is readable/writable
+	if _, err := os.Stat(path); err == nil {
+		// File exists, check if it's writable
+		if info, err := os.Stat(path); err == nil {
+			if info.Mode().Perm()&0200 == 0 {
+				return nil, fmt.Errorf("database file %s exists but is not writable (permissions: %s)", path, info.Mode().String())
+			}
+		}
+	} else if !os.IsNotExist(err) {
+		// Some other error checking the file
+		return nil, fmt.Errorf("cannot access database file %s: %w", path, err)
+	}
+
 	conn, err := sql.Open("sqlite", path)
 	if err != nil {
 		return nil, fmt.Errorf("open database: %w", err)
@@ -45,6 +77,10 @@ func Open(path string) (*DB, error) {
 
 	if err := conn.Ping(); err != nil {
 		conn.Close()
+		// Provide more helpful error message for common SQLite errors
+		if err.Error() == "unable to open database file: out of memory (14)" {
+			return nil, fmt.Errorf("cannot open database file %s: %w\nHint: This usually means the directory doesn't exist, there are permission issues, or the disk is full. Check that %s is writable.", path, err, dbDir)
+		}
 		return nil, fmt.Errorf("ping database: %w", err)
 	}
 

@@ -376,6 +376,7 @@ func handleSetup() {
 
 	// Get the service binary path (assuming it's in the same directory)
 	serviceExePath := filepath.Join(filepath.Dir(exePath), "netmon-service")
+	menuExePath := filepath.Join(filepath.Dir(exePath), "netmon-menu")
 
 	// Check if service binary exists
 	if _, err := os.Stat(serviceExePath); os.IsNotExist(err) {
@@ -384,7 +385,15 @@ func handleSetup() {
 		os.Exit(1)
 	}
 
-	fmt.Printf("Found netmon-service at: %s\n\n", serviceExePath)
+	fmt.Printf("Found netmon-service at: %s\n", serviceExePath)
+	
+	// Check if menu bar app exists (optional)
+	menuAppExists := false
+	if _, err := os.Stat(menuExePath); err == nil {
+		menuAppExists = true
+		fmt.Printf("Found netmon-menu at: %s\n", menuExePath)
+	}
+	fmt.Println()
 
 	// Check if already installed
 	home, err := os.UserHomeDir()
@@ -497,6 +506,28 @@ func handleSetup() {
 		fmt.Println("✓ Service loaded and started successfully!")
 	}
 
+	// Ask about menu bar app
+	if menuAppExists {
+		fmt.Println()
+		fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+		fmt.Println()
+		fmt.Println("Would you like to show network usage in the macOS menu bar?")
+		fmt.Println("This will:")
+		fmt.Println("  ✅ Display today's total network usage in the menu bar")
+		fmt.Println("  ✅ Update every 5 seconds")
+		fmt.Println("  ✅ Show detailed stats on hover")
+		fmt.Println("  ✅ Start automatically on login")
+		fmt.Println()
+		fmt.Print("Enable menu bar app? (yes/no): ")
+
+		if promptYesNo() {
+			setupMenuBarApp(home, menuExePath)
+		} else {
+			fmt.Println("\nMenu bar app not enabled.")
+			fmt.Println("You can run it manually with: ./netmon-menu")
+		}
+	}
+
 	// Success message
 	fmt.Println()
 	fmt.Println("╔════════════════════════════════════════════════════════════════╗")
@@ -506,18 +537,112 @@ func handleSetup() {
 	fmt.Println("╚════════════════════════════════════════════════════════════════╝")
 	fmt.Println()
 	fmt.Println("netmon-service is now running in the background!")
+	if menuAppExists {
+		fmt.Println("Menu bar app is configured!")
+	}
 	fmt.Println()
 	fmt.Println("What's next:")
 	fmt.Println("  • View your network usage: netmon")
 	fmt.Println("  • Check service logs:      tail -f /tmp/netmon-service.log")
 	fmt.Println("  • View monthly stats:      netmon stats month")
+	if menuAppExists {
+		fmt.Println("  • Menu bar shows:        Today's total network usage")
+	}
 	fmt.Println()
 	fmt.Println("Management commands:")
 	fmt.Println("  • Stop service:   launchctl stop com.netmon.service")
 	fmt.Println("  • Start service:  launchctl start com.netmon.service")
 	fmt.Println("  • Uninstall:      launchctl unload ~/Library/LaunchAgents/com.netmon.service.plist")
+	if menuAppExists {
+		fmt.Println("  • Stop menu bar:  launchctl stop com.netmon.menu")
+		fmt.Println("  • Start menu bar: launchctl start com.netmon.menu")
+	}
 	fmt.Println()
 	fmt.Println("The service will automatically start on boot. Enjoy! 🚀")
+}
+
+// setupMenuBarApp sets up the menu bar app as a LaunchAgent
+func setupMenuBarApp(home, menuExePath string) {
+	launchAgentsDir := filepath.Join(home, "Library", "LaunchAgents")
+	plistPath := filepath.Join(launchAgentsDir, "com.netmon.menu.plist")
+
+	// Check if already installed
+	if _, err := os.Stat(plistPath); err == nil {
+		// Unload existing menu bar app
+		fmt.Println("\nUnloading existing menu bar app...")
+		cmd := exec.Command("launchctl", "unload", plistPath)
+		cmd.Run() // Ignore errors, it might not be loaded
+	}
+
+	// Create plist content for menu bar app
+	// Note: Menu bar apps need to run in the user's GUI session
+	// We use LimitLoadToSessionType with Aqua to ensure GUI access
+	plistContent := fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.netmon.menu</string>
+    
+    <key>ProgramArguments</key>
+    <array>
+        <string>%s</string>
+    </array>
+    
+    <key>RunAtLoad</key>
+    <true/>
+    
+    <key>KeepAlive</key>
+    <true/>
+    
+    <key>LimitLoadToSessionType</key>
+    <string>Aqua</string>
+    
+    <key>StandardOutPath</key>
+    <string>/tmp/netmon-menu.log</string>
+    
+    <key>StandardErrorPath</key>
+    <string>/tmp/netmon-menu.error.log</string>
+    
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    </dict>
+</dict>
+</plist>
+`, menuExePath)
+
+	// Write plist file
+	fmt.Println("\nCreating menu bar app configuration...")
+	if err := os.WriteFile(plistPath, []byte(plistContent), 0644); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: Could not create menu bar plist file: %v\n", err)
+		return
+	}
+	fmt.Printf("✓ Created: %s\n", plistPath)
+
+	// Load the menu bar app
+	fmt.Println("\nLoading and starting menu bar app...")
+	cmd := exec.Command("launchctl", "load", plistPath)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error loading menu bar app: %v\n%s\n", err, string(output))
+		fmt.Println("⚠️  Menu bar app may need to be started manually after login.")
+		return
+	}
+
+	// Wait a moment for app to start
+	time.Sleep(1 * time.Second)
+
+	// Verify it's running
+	cmd = exec.Command("launchctl", "list", "com.netmon.menu")
+	if err := cmd.Run(); err != nil {
+		fmt.Println("⚠️  Menu bar app loaded but may not be running properly.")
+		fmt.Println("Check logs: tail -f /tmp/netmon-menu.log")
+	} else {
+		fmt.Println("✓ Menu bar app loaded and started successfully!")
+		fmt.Println("  Look for the network usage in your menu bar!")
+	}
 }
 
 // promptYesNo prompts the user for a yes/no answer
