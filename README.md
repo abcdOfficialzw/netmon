@@ -50,6 +50,33 @@ This will:
 
 **That's it!** You're ready to use netmon.
 
+### Installation via Homebrew
+
+```bash
+# Add the tap
+brew tap abcdofficialzw/netmon
+
+# Install netmon
+brew install netmon
+
+# Run setup wizard
+netmon setup
+```
+
+### Updating netmon
+
+If you installed via Homebrew:
+
+```bash
+# Update to the latest version
+brew upgrade netmon
+
+# Check your current version
+netmon version
+```
+
+For detailed update instructions, see [UPDATE_GUIDE.md](UPDATE_GUIDE.md).
+
 ## Usage
 
 ### Option A: Automatic Setup (Easiest)

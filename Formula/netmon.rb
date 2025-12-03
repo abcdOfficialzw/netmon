@@ -5,14 +5,12 @@
 # Description: macOS Network Usage Monitor
 class Netmon < Formula
   desc "macOS Network Usage Monitor - Track network usage by interface and application"
-  homepage "https://github.com/YOUR_USERNAME/netmon"
-  url "https://github.com/YOUR_USERNAME/netmon/archive/refs/heads/main.tar.gz"
-  # For versioned releases, use:
-  # url "https://github.com/YOUR_USERNAME/netmon/archive/refs/tags/v1.0.0.tar.gz"
-  # version "1.0.0"
-  # sha256 "YOUR_SHA256_HASH_HERE"
+  homepage "https://github.com/abcdOfficialzw/netmon"
+  url "https://github.com/abcdOfficialzw/netmon/archive/refs/heads/main.tar.gz"
+  version "0.1.0"
+  sha256 "091a34611ef54350d11c557715af8c096079a259eb3ce866755edbe32e8bab52"
   license "MIT"
-  head "https://github.com/YOUR_USERNAME/netmon.git", branch: "main"
+  head "https://github.com/abcdOfficialzw/netmon.git", branch: "main"
 
   depends_on "go" => :build
 

@@ -13,6 +13,12 @@ import (
 	"time"
 )
 
+// Version information
+const (
+	Version = "0.1.1"
+	AppName = "netmon"
+)
+
 func main() {
 	// If no arguments, show apps by default
 	if len(os.Args) < 2 {
@@ -53,6 +59,9 @@ func main() {
 	switch command {
 	case "setup":
 		handleSetup()
+		return
+	case "version":
+		showVersion()
 		return
 	case "stats":
 		// If "stats" with no subcommand, default to apps
@@ -310,6 +319,7 @@ func sortAppSummaries(summaries []stats.AppSummary) {
 func printUsage() {
 	fmt.Println("Usage:")
 	fmt.Println("  netmon setup              Set up background service (run this first!)")
+	fmt.Println("  netmon version            Show version information")
 	fmt.Println("  netmon                    Show today's usage by application (default)")
 	fmt.Println("  netmon stats              Show today's usage by application (same as above)")
 	fmt.Println("  netmon stats apps         Show today's usage by application")
@@ -321,6 +331,16 @@ func printUsage() {
 	fmt.Println()
 	fmt.Println("Flags:")
 	fmt.Println("  -db <path>               Path to SQLite database (default: ~/.netmon/netmon.db)")
+}
+
+// showVersion displays version information
+func showVersion() {
+	fmt.Printf("%s version %s\n", AppName, Version)
+	fmt.Println()
+	fmt.Println("macOS Network Usage Monitor")
+	fmt.Println("Track network usage by interface and application")
+	fmt.Println()
+	fmt.Printf("Homepage: https://github.com/abcdOfficialzw/netmon\n")
 }
 
 func getDefaultDBPath() string {

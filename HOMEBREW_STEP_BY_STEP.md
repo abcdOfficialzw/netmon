@@ -55,6 +55,7 @@ git push -u origin main
 
 Edit `Formula/netmon.rb` and replace all instances of `YOUR_USERNAME`:
 
+
 ```bash
 # Open the formula
 open Formula/netmon.rb
