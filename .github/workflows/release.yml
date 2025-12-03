@@ -1,0 +1,35 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.22'
+      
+      - name: Build binaries
+        run: |
+          go build -o bin/netmon-service ./cmd/netmon-service
+          go build -o bin/netmon ./cmd/netmon
+      
+      - name: Create release archive
+        run: |
+          tar -czf netmon-darwin-amd64.tar.gz bin/
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: netmon-darwin-amd64.tar.gz
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
