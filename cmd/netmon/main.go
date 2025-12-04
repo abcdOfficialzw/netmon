@@ -15,7 +15,7 @@ import (
 
 // Version information
 const (
-	Version = "0.2.0"
+	Version = "0.3.0"
 	AppName = "netmon"
 )
 
@@ -386,7 +386,7 @@ func handleSetup() {
 	}
 
 	fmt.Printf("Found netmon-service at: %s\n", serviceExePath)
-	
+
 	// Check if menu bar app exists (optional)
 	menuAppExists := false
 	if _, err := os.Stat(menuExePath); err == nil {
@@ -403,18 +403,18 @@ func handleSetup() {
 	}
 
 	plistPath := filepath.Join(home, "Library", "LaunchAgents", "com.netmon.service.plist")
-	
+
 	if _, err := os.Stat(plistPath); err == nil {
 		// Already installed
 		fmt.Println("⚠️  netmon service is already installed!")
 		fmt.Println()
 		fmt.Print("Do you want to reinstall/update it? (yes/no): ")
-		
+
 		if !promptYesNo() {
 			fmt.Println("\nSetup cancelled.")
 			return
 		}
-		
+
 		// Unload existing service
 		fmt.Println("\nUnloading existing service...")
 		cmd := exec.Command("launchctl", "unload", plistPath)
@@ -653,17 +653,16 @@ func promptYesNo() bool {
 		if err != nil {
 			return false
 		}
-		
+
 		input = strings.TrimSpace(strings.ToLower(input))
-		
+
 		if input == "yes" || input == "y" {
 			return true
 		}
 		if input == "no" || input == "n" {
 			return false
 		}
-		
+
 		fmt.Print("Please enter 'yes' or 'no': ")
 	}
 }
-
